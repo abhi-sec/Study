@@ -1,0 +1,27 @@
+{
+  "name": "study",
+  "version": "1.0.0",
+  "description": "JIRA-style study tracker with spaced repetition",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhi-sec/Study.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/abhi-sec/Study/issues"
+  },
+  "homepage": "https://github.com/abhi-sec/Study#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.7.1"
+  }
+}

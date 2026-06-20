@@ -1,5 +1,6 @@
 const API_BASE = '/api/tasks';
 const statuses = ['To Do', 'In Progress', 'Under Review', 'Completed'];
+// Keep this aligned with server-side REVISION_INTERVALS.
 const revisionIntervals = [1, 3, 7, 15, 30, 60, 120];
 const expandedTasks = new Set();
 
@@ -27,6 +28,17 @@ const elements = {
 const formatDate = (dateValue) => {
   if (!dateValue) return '—';
   return new Date(dateValue).toLocaleDateString();
+};
+/**
+ * Validates and safely encodes MongoDB ObjectId values used in client-built URLs.
+ * @param {string} id - 24-character hexadecimal ObjectId string.
+ * @returns {string}
+ */
+const sanitizeId = (id) => {
+  if (!/^[a-f\d]{24}$/i.test(id)) {
+    throw new Error('Invalid identifier');
+  }
+  return encodeURIComponent(id);
 };
 
 const priorityClass = {
@@ -80,7 +92,7 @@ const createTask = async (payload) => {
 };
 
 const updateTask = async (id, payload) => {
-  const response = await fetch(`${API_BASE}/${id}`, {
+  const response = await fetch(`${API_BASE}/${sanitizeId(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -89,12 +101,12 @@ const updateTask = async (id, payload) => {
 };
 
 const deleteTask = async (id) => {
-  const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${API_BASE}/${sanitizeId(id)}`, { method: 'DELETE' });
   if (!response.ok) throw new Error('Failed to delete task');
 };
 
 const toggleRevision = async (taskId, revisionId) => {
-  const response = await fetch(`${API_BASE}/${taskId}/revision/${revisionId}`, {
+  const response = await fetch(`${API_BASE}/${sanitizeId(taskId)}/revision/${sanitizeId(revisionId)}`, {
     method: 'PATCH',
   });
   if (!response.ok) throw new Error('Failed to toggle revision');
@@ -248,5 +260,5 @@ elements.taskForm.addEventListener('submit', async (event) => {
 setupBoardInteractions();
 fetchTasks().catch((error) => {
   console.error(error);
-  alert('Failed to load tasks. Please check backend configuration.');
+  alert('Failed to load tasks. Ensure the server is running and MONGODB_URI is configured correctly.');
 });

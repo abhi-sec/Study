@@ -1,13 +1,16 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
+// Days after completion when each spaced-repetition revision should happen.
 const REVISION_INTERVALS = [1, 3, 7, 15, 30, 60, 120];
+const UPDATABLE_TASK_FIELDS = ['title', 'subject', 'description', 'status', 'priority', 'dueDate'];
 
 const revisionSchema = new mongoose.Schema(
   {
@@ -53,7 +56,17 @@ const generateRevisions = (completionDate) =>
 
 app.use(cors());
 app.use(express.json());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
 app.use(express.static(path.join(__dirname)));
+
+const isValidObjectId = (value) => mongoose.isValidObjectId(value);
 
 app.post('/api/tasks', async (req, res) => {
   try {
@@ -75,6 +88,10 @@ app.get('/api/tasks', async (_req, res) => {
 });
 
 app.put('/api/tasks/:id', async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid task id' });
+  }
+
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {
@@ -82,8 +99,7 @@ app.put('/api/tasks/:id', async (req, res) => {
     }
     const previousStatus = task.status;
 
-    const updatableFields = ['title', 'subject', 'description', 'status', 'priority', 'dueDate'];
-    updatableFields.forEach((field) => {
+    UPDATABLE_TASK_FIELDS.forEach((field) => {
       if (req.body[field] !== undefined) {
         task[field] = req.body[field];
       }
@@ -105,6 +121,10 @@ app.put('/api/tasks/:id', async (req, res) => {
 });
 
 app.patch('/api/tasks/:id/revision/:revisionId', async (req, res) => {
+  if (!isValidObjectId(req.params.id) || !isValidObjectId(req.params.revisionId)) {
+    return res.status(400).json({ error: 'Invalid task or revision id' });
+  }
+
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {
@@ -125,6 +145,10 @@ app.patch('/api/tasks/:id/revision/:revisionId', async (req, res) => {
 });
 
 app.delete('/api/tasks/:id', async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid task id' });
+  }
+
   try {
     const task = await Task.findByIdAndDelete(req.params.id);
     if (!task) {
